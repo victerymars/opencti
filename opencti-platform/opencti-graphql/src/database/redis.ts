@@ -530,7 +530,7 @@ export const storeCreateEntityEvent = async (context: AuthContext, user: AuthUse
   try {
     if (isStixExportableData(instance)) {
       const event = buildCreateEvent(user, instance, message);
-      await pushToStream(context, user, getClientBase(), event, opts);
+      await pushToStream(context, user, getClientBase(), event, opts);  //缓存redis
       return event;
     }
     return undefined;

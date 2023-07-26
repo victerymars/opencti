@@ -76,29 +76,29 @@ export const resetStateConnector = async (context, user, id) => {
   });
   return storeLoadById(context, user, id, ENTITY_TYPE_CONNECTOR).then((data) => completeConnector(data));
 };
-export const registerConnector = async (context, user, connectorData) => {
-  // eslint-disable-next-line camelcase
+export const registerConnector = async (context, user, connectorData) => { //注册采集器
+  // eslint-disable-next-line camelcase   
   const { id, name, type, scope, auto = null, only_contextual = null } = connectorData;
-  const connector = await storeLoadById(context, user, id, ENTITY_TYPE_CONNECTOR);
+  const connector = await storeLoadById(context, user, id, ENTITY_TYPE_CONNECTOR); //从从数据数据库查找采集器id
   // Register queues
-  await registerConnectorQueues(id, name, type, scope);
-  if (connector) {
-    // Simple connector update
+  await registerConnectorQueues(id, name, type, scope);  // 注册队列（rabbitmq）
+  if (connector) {   // 如果数据库中存在对应id的采集器
+    // Simple connector update  // 执行更新操作
     const patch = {
       name,
       updated_at: now(),
-      connector_user_id: user.id,
+      connector_user_id: user.id, // 用户id -> 在哪里生成？
       connector_scope: scope && scope.length > 0 ? scope.join(',') : null,
       auto,
       only_contextual,
     };
-    const { element } = await patchAttribute(context, user, id, ENTITY_TYPE_CONNECTOR, patch);
+    const { element } = await patchAttribute(context, user, id, ENTITY_TYPE_CONNECTOR, patch);  // 更新配置属性
     // Notify configuration change for caching system
-    await notify(BUS_TOPICS[ABSTRACT_INTERNAL_OBJECT].EDIT_TOPIC, element, user);
-    return storeLoadById(context, user, id, ENTITY_TYPE_CONNECTOR).then((data) => completeConnector(data));
+    await notify(BUS_TOPICS[ABSTRACT_INTERNAL_OBJECT].EDIT_TOPIC, element, user); // 通知缓存系统，配置已经更新
+    return storeLoadById(context, user, id, ENTITY_TYPE_CONNECTOR).then((data) => completeConnector(data)); // 查找返回
   }
   // Need to create the connector
-  const connectorToCreate = {
+  const connectorToCreate = { // 如果在数据库中没有找到对应id的采集器
     internal_id: id,
     name,
     connector_type: type,
@@ -107,7 +107,7 @@ export const registerConnector = async (context, user, connectorData) => {
     only_contextual,
     connector_user_id: user.id,
   };
-  const createdConnector = await createEntity(context, user, connectorToCreate, ENTITY_TYPE_CONNECTOR);
+  const createdConnector = await createEntity(context, user, connectorToCreate, ENTITY_TYPE_CONNECTOR); // 创建采集器实例并写入到数据库
   await publishUserAction({
     user,
     event_type: 'mutation',

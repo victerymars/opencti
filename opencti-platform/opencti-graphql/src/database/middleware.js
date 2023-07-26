@@ -856,7 +856,7 @@ const indexCreatedElement = async (context, user, { type, element, update, relat
   // Continue the creation of the element and the connected relations
   if (type === TRX_CREATION) {
     const taskPromise = createContainerSharingTask(context, ACTION_TYPE_SHARE, element, relations);
-    const indexPromise = elIndexElements(context, user, element.entity_type, [element, ...(relations ?? [])]);
+    const indexPromise = elIndexElements(context, user, element.entity_type, [element, ...(relations ?? [])]); //批量更新或写入元素
     await Promise.all([taskPromise, indexPromise]);
   }
   if (type === TRX_UPDATE) {
@@ -3159,7 +3159,7 @@ const createEntityRaw = async (context, user, input, type, opts = {}) => {
     // Try to get the lock in redis
     lock = await lockResource(participantIds);
     // Generate the internal id if needed
-    const standardId = resolvedInput.standard_id || generateStandardId(type, resolvedInput);
+    const standardId = resolvedInput.standard_id || generateStandardId(type, resolvedInput); //标准id
     // Check if the entity exists, must be done with SYSTEM USER to really find it.
     const existingEntities = [];
     const existingByIdsPromise = internalFindByIds(context, SYSTEM_USER, participantIds, { type });
@@ -3249,9 +3249,9 @@ const createEntityRaw = async (context, user, input, type, opts = {}) => {
       // Create the object
       dataEntity = await buildEntityData(context, user, resolvedInput, type, opts);
     }
-    // Index the created element
+    // Index the created element //写入到服务器
     await indexCreatedElement(context, user, dataEntity);
-    // Push the input in the stream
+    // Push the input in the stream  //缓存redis
     let event;
     if (dataEntity.type === TRX_CREATION) {
       const createdElement = { ...resolvedInput, ...dataEntity.element };
@@ -3273,8 +3273,8 @@ const createEntityRaw = async (context, user, input, type, opts = {}) => {
 
 export const createEntity = async (context, user, input, type, opts = {}) => {
   const isCompleteResult = opts.complete === true;
-  // volumes of objects relationships must be controlled
-  if (input.objects && input.objects.length > MAX_BATCH_SIZE) {
+  // volumes of objects relationships must be controlled  //必须控制对象体积关系
+  if (input.objects && input.objects.length > MAX_BATCH_SIZE) { // 长度大于300
     const objectSequences = R.splitEvery(MAX_BATCH_SIZE, input.objects);
     const firstSequence = objectSequences.shift();
     const subObjectsEntity = R.assoc(INPUT_OBJECTS, firstSequence, input);
@@ -3288,8 +3288,8 @@ export const createEntity = async (context, user, input, type, opts = {}) => {
     }
     return isCompleteResult ? created : created.element;
   }
-  const data = await createEntityRaw(context, user, input, type, opts);
-  // In case of creation, start an enrichment
+  const data = await createEntityRaw(context, user, input, type, opts);//创建raw实体
+  // In case of creation, start an enrichment   // 在创建的情况下，开始丰富
   if (data.isCreation) {
     await createEntityAutoEnrichment(context, user, data.element.id, type);
   }

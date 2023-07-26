@@ -2147,9 +2147,9 @@ const prepareIndexing = async (elements) => {
 };
 export const elIndexElements = async (context, user, message, elements) => {
   const elIndexElementsFn = async () => {
-    // 00. Relations must be transformed before indexing.
+    // 00. Relations must be transformed before indexing. //建立索引之前必须转换关系。
     const transformedElements = await prepareIndexing(elements);
-    // 01. Bulk the indexing of row elements
+    // 01. Bulk the indexing of row elements  //批量索引行元素
     const body = transformedElements.flatMap((doc) => [
       { index: { _index: doc._index, _id: doc.internal_id, retry_on_conflict: ES_RETRY_ON_CONFLICT } },
       R.pipe(R.dissoc('_index'))(doc),
@@ -2157,7 +2157,7 @@ export const elIndexElements = async (context, user, message, elements) => {
     if (body.length > 0) {
       await elBulk({ refresh: true, timeout: BULK_TIMEOUT, body });
     }
-    // 02. If relation, generate impacts for from and to sides
+    // 02. If relation, generate impacts for from and to sides //如果有关系，则对双方产生影响
     const cache = {};
     const impactedEntities = R.pipe(
       R.filter((e) => e.base_type === BASE_TYPE_RELATION),
@@ -2223,7 +2223,7 @@ export const elIndexElements = async (context, user, message, elements) => {
       R.dissoc('_index', doc.data),
     ]);
     if (bodyUpdate.length > 0) {
-      const bulkPromise = elBulk({ refresh: true, timeout: BULK_TIMEOUT, body: bodyUpdate });
+      const bulkPromise = elBulk({ refresh: true, timeout: BULK_TIMEOUT, body: bodyUpdate }); //批量更新写入操作
       await Promise.all([bulkPromise]);
     }
     return transformedElements.length;
